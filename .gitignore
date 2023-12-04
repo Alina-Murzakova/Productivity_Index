@@ -1,0 +1,5 @@
+__pycache__/
+Jupyter/
+help_for_me/
+*.xls
+*.xlsx
