@@ -16,7 +16,7 @@ class FunctionFluidProduction:
     heroes = []
     """Класс кривой Кпрод"""
 
-    def exponential(self, t, Kprod_i, Di):
+    def exponential(self, t, Di):
         """
         Exponential decline curve equation
         Arguments:
@@ -28,10 +28,10 @@ class FunctionFluidProduction:
             Returns Kprod, or the expected Kprod at time t. Float.
         """
         # K, D, l, p = coeff
-        return Kprod_i*np.exp(-Di*t)
+        return np.exp(-Di*t)
 
 
-    def hyperbolic(self, t, Kprod_i, b, Di):
+    def hyperbolic(self, t, b, Di):
         """
         Hyperbolic decline curve equation
         Arguments:
@@ -43,26 +43,26 @@ class FunctionFluidProduction:
         Output:
             Returns Kprod, or the expected Kprod at time t. Float.
         """
-        return Kprod_i/((1.0+b*Di*t)**(1.0/b))
+        return 1/((1.0+b*Di*t)**(1.0/b))
 
 
-    def harmonic(self, t, Kprod_i, Di):
+    def harmonic(self, t, Di):
         """
         Harmonic decline curve equation
         Output:
             Returns Kprod, or the expected Kprod at time t. Float.
         """
-        return Kprod_i/(1.0+Di*t)
+        return 1/(1.0+Di*t)
 
 
-    def hyperbolic_power(self, t, Kprod_i, a, b, Di, tau):
-        # return Kprod_i * np.exp(-a * np.log(1.0 + tau)) * np.exp(-1 / b * np.log(1.0 + b * Di * (t - tau)))
-        return Kprod_i * (1.0 / ((1.0 + tau)**a)) * (1 / ((1 + b * Di * (t - tau))**(1.0 / b)))
+    def hyperbolic_power(self, t, a, b, Di, tau):
+        return np.exp(-a * np.log(1.0 + tau)) * np.exp(-1 / b * np.log(1.0 + b * Di * (t - tau)))
+        # return (1.0 / ((1.0 + tau)**a)) * (1 / ((1 + b * Di * (t - tau))**(1.0 / b)))
 
 
-    def double(self, t, Kprod_i, b1, b2, Di, tau):
-        # return Kprod_i * np.exp(-1/b1*np.log(1.0+b1*Di*tau)) * np.exp(-1/b2*np.log(1.0+b2*Di*(t-tau)/(1.0+b1*Di*tau)))
-        return Kprod_i * (1.0 / ((1.0 + b1 * Di * tau)**(1.0 / b1))) * (1.0 / (((1.0 + b2 * Di * (t - tau)) / (1.0 + b1 * Di * tau))**(1.0 / b2)))
+    def double(self, t, b1, b2, Di, tau):
+        return np.exp(-1/b1*np.log(1.0+b1*Di*tau)) * np.exp(-1/b2*np.log(1.0+b2*Di*(t-tau)/(1.0+b1*Di*tau)))
+        # return (1.0 / ((1.0 + b1 * Di * tau)**(1.0 / b1))) * (1.0 / (((1.0 + b2 * Di * (t - tau)) / (1.0 + b1 * Di * tau))**(1.0 / b2)))
 
 def calc_arps(df, Kprod):
     df_with_Kprod = df[df[Kprod] > 0]  # только строки, где Кпрод больше 0
@@ -71,6 +71,7 @@ def calc_arps(df, Kprod):
     well_number = df_with_Kprod['№ скважины'].iloc[0]
     Kprod_max = get_max_Kprod(df_with_Kprod, Kprod, 'Дата')
     Kprod_init = df_with_Kprod[Kprod].iloc[0]
+    decline_rate_Kprod = df_with_Kprod[Kprod] / Kprod_init
     sigma = np.ones(df_with_Kprod.shape[0])
     # sigma.fill(0.5)
     sigma[0] = 0.1 # = sigma[-3:]
@@ -82,26 +83,29 @@ def calc_arps(df, Kprod):
     #               FP.hyperbolic_power: ([Kprod_max, 1, 1, 1, 10], 0, [Kprod_max, 10, 10, 10, 500]),
     #               FP.double: ([Kprod_max, 1, 1, 1, 10], 0, [Kprod_max, 10, 10, 10, 500])}
 
-    types_arps = {FP.hyperbolic: ([Kprod_max, 1, 1], 0, [Kprod_max, 2, 1]),
-                  # FP.hyperbolic_power: ([Kprod_max, 1, 1, 1, 10], 0, [Kprod_max, 10, 10, 10, 500]),
-                  FP.hyperbolic_power: ([Kprod_max, 0.0001, 0.0001, 0.0001, 10], 0, [Kprod_max, 10, 1, 10, 500]),
-                  FP.double: ([Kprod_max, 0.0001, 0.0001, 0.0001, 10], 0, [Kprod_max, 10, 1, 10, 500])}
+    # types_arps = {FP.hyperbolic: ([Kprod_max, 1, 1], 0, [Kprod_max, 2, 1]),
+    #               # FP.hyperbolic_power: ([Kprod_max, 1, 1, 1, 10], 0, [Kprod_max, 10, 10, 10, 500]),
+    #               FP.hyperbolic_power: ([Kprod_max, 0.0001, 0.0001, 0.0001, 10], 0, [Kprod_max, 10, 1, 10, 500]),
+    #               FP.double: ([Kprod_max, 0.0001, 0.0001, 0.0001, 10], 0, [Kprod_max, 10, 1, 10, 500])}
+
+    types_arps = {FP.hyperbolic: ([1, 1], 0, [2, 1]),
+                  FP.hyperbolic_power: ([0.0001, 0.0001, 0.0001, 10], 0, [10, 1, 10, 500]),
+                  FP.double: ([0.0001, 0.0001, 0.0001, 10], 0, [10, 1, 10, 500])}
 
     for arps in types_arps:
         print(arps)
         # typ = [FP.exponential, FP.hyperbolic, FP.harmonic, FP.power, FP.double]
 
-        popt_exp, pcov_exp = curve_fit(arps, df_with_Kprod['Накопленное время работы, дни'], df_with_Kprod[Kprod],
+        popt_exp, pcov_exp = curve_fit(arps, df_with_Kprod['Накопленное время работы, дни'], decline_rate_Kprod,
                                        p0=types_arps[arps][0], bounds=(types_arps[arps][1], types_arps[arps][2]), sigma = sigma)
         print(popt_exp)
-        K_prod_arps = arps(df_with_Kprod['Накопленное время работы, дни'], *popt_exp)
-        K_prod_arps_with_null = arps(df['Накопленное время работы, дни'], *popt_exp)
-        decline_rate_Kprod = K_prod_arps_with_null / popt_exp[0]
+        decline_rate_Kprod_Arps = arps(df_with_Kprod['Накопленное время работы, дни'], *popt_exp)
+        decline_rate_Kprod_Arps_with_null = arps(df['Накопленное время работы, дни'], *popt_exp)
+        # decline_rate_Kprod = K_prod_arps_with_null / popt_exp[0]
 
-        # df[(arps.__name__)] = K_prod_arps
-        df[(arps.__name__)] = decline_rate_Kprod
+        df[(arps.__name__)] = decline_rate_Kprod_Arps_with_null
 
-        r_squared = r2_score(df_with_Kprod[Kprod], K_prod_arps)
+        r_squared = r2_score(decline_rate_Kprod, decline_rate_Kprod_Arps)
         dict_R2 = {'№ скважины': well_number, 'Тип Арпса': (arps.__name__), 'R2': r_squared}
         df_r2 = df_r2._append(dict_R2, ignore_index=True)
     # decline_rate_Kprod_minimize, dict_r2 = Arps_minimize(df, Kprod)

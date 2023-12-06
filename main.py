@@ -89,6 +89,10 @@ for prod_well in wells_prod:
     # данные добывающей скважины
     data_prod = df_initial.loc[(df_initial[well_number] == prod_well) & (df_initial[work_marker] == prod)].copy()
     data_prod_not_null = data_prod[data_prod[Ql_rate] != 0]  # Оставляем ненулевые строки по добыче
+    last_work_date = data_prod_not_null[date].sort_values()
+    last_work_date = last_work_date.iloc[-1]
+
+    diff_date = (last_date - last_work_date).days / 365.25
 
     # Проверка, работала ли скважина
     if data_prod_not_null.empty:
@@ -98,14 +102,20 @@ for prod_well in wells_prod:
         df_errors = df_errors._append(dict_errors, ignore_index=True)
         continue
 
-    a = data_prod_not_null.shape[0]
-    if data_prod_not_null.shape[0] < 6:
+    # a = data_prod_not_null.shape[0]
+    if data_prod_not_null.shape[0] <= 6:
         print(prod_well, "короткая история работы доб.скважины")
         error = "короткая история работы доб.скважины"
         dict_errors= {'Доб.скважина': prod_well, 'Нагн.скважина': 0, 'Причина': error}
         df_errors = df_errors._append(dict_errors, ignore_index=True)
         continue
 
+    if diff_date >= 7:
+        print(prod_well, 'скважина не работает более 7 лет')
+        error = "скважина не работает более 7 лет"
+        dict_errors= {'Доб.скважина': prod_well, 'Нагн.скважина': 0, 'Причина': error}
+        df_errors = df_errors._append(dict_errors, ignore_index=True)
+        continue
 
     # Проверка, есть ли у добывающей скважины данные Рзаб
     data_prod_not_null_Pwell = data_prod_not_null[data_prod_not_null[P_well] != 0]
@@ -219,7 +229,7 @@ for prod_well in wells_prod:
         data_prod['Средневзвешенное Рзаб ППД'] = 0
         data_prod['Кпрод ТР расчет, м3/сут/атм'] = 0
         data_prod.loc[((data_prod[P_well] > 0) & (data_prod[Ql_rate] != 0) & (data_prod[P_pressure] > 0) |
-                       (data_prod[Ql_rate] == 0)), 'Кпрод ТР расчет, м3/сут/атм'] = data_prod[Ql_rate] / (data_prod[P_pressure] - data_prod[P_well])
+                       (data_prod[Ql_rate] == 0) & (data_prod[P_pressure] > data_prod[P_well])), 'Кпрод ТР расчет, м3/сут/атм'] = data_prod[Ql_rate] / (data_prod[P_pressure] - data_prod[P_well])
         data_prod['Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] = 0
 
         data_prod_with_Kprod = data_prod[data_prod['Кпрод ТР расчет, м3/сут/атм'] > 0]  # только строки, где Кпрод больше 0
@@ -254,10 +264,12 @@ for prod_well in wells_prod:
         # добавление средневзв Рзаб ППД в таблицу добывающей скважины
         data_prod = data_prod.merge(inj_parameters_sum, how='left', on=date)
         data_prod['Кпрод ТР расчет, м3/сут/атм'] = 0
-        data_prod.loc[((data_prod[P_well] > 0) & (data_prod[Ql_rate] != 0) & (data_prod[P_pressure] > 0) | (data_prod[Ql_rate] == 0)), 'Кпрод ТР расчет, м3/сут/атм'] = data_prod[Ql_rate] / (data_prod[P_pressure] - data_prod[P_well])
+        data_prod.loc[((data_prod[P_well] > 0) & (data_prod[Ql_rate] != 0) & (data_prod[P_pressure] > 0) |
+                       (data_prod[Ql_rate] == 0)) & (data_prod[P_pressure] > data_prod[P_well]), 'Кпрод ТР расчет, м3/сут/атм'] = data_prod[Ql_rate] / (data_prod[P_pressure] - data_prod[P_well])
         # if inj_parameters_sum['Средневзвешенное Рзаб ППД'].sum() != 0:
         data_prod['Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] = 0
-        data_prod.loc[((data_prod[P_well] > 0) & (data_prod[Ql_rate] != 0) & (data_prod[P_pressure] > 0) | (data_prod[Ql_rate] == 0)), 'Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] = data_prod[Ql_rate] / (data_prod['Средневзвешенное Рзаб ППД'] - data_prod[P_well])
+        data_prod.loc[((data_prod[P_well] > 0) & (data_prod[Ql_rate] != 0) & (data_prod[P_pressure] > 0) |
+                       (data_prod[Ql_rate] == 0)) & (data_prod[P_pressure] > data_prod[P_well]), 'Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] = data_prod[Ql_rate] / (data_prod['Средневзвешенное Рзаб ППД'] - data_prod[P_well])
         # else:
         #     data_prod['Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] = 0
 
@@ -268,7 +280,6 @@ for prod_well in wells_prod:
 
         data_prod['Темп Кпрод (Рпл = Рзаб ППД)'] = data_prod['Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] / Kprod_init
         # data_prod_with_Kprod_new['Темп Кпрод (Рпл = Рзаб ППД)'] = data_prod_with_Kprod_new['Кпрод (Рпл = Рзаб ППД), м3/сут/атм'] / Kprod_init
-
 
     # считываем Арпса
     data_prod_with_arps, df_r2_well = calc_arps(data_prod, Kprod_result)
