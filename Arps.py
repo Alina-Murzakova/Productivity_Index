@@ -56,19 +56,24 @@ class FunctionFluidProduction:
 
 
     def hyperbolic_power(self, t, Kprod_i, a, b, Di, tau):
-        return Kprod_i * np.exp(-a * np.log(1.0 + tau)) * np.exp(-1 / b * np.log(1.0 + b * Di * (t - tau)))
+        # return Kprod_i * np.exp(-a * np.log(1.0 + tau)) * np.exp(-1 / b * np.log(1.0 + b * Di * (t - tau)))
+        return Kprod_i * (1.0 / ((1.0 + tau)**a)) * (1 / ((1 + b * Di * (t - tau))**(1.0 / b)))
 
 
     def double(self, t, Kprod_i, b1, b2, Di, tau):
-        return Kprod_i * np.exp(-1/b1*np.log(1.0+b1*Di*tau)) * np.exp(-1/b2*np.log(1.0+b2*Di*(t-tau)/(1.0+b1*Di*tau)))
-
+        # return Kprod_i * np.exp(-1/b1*np.log(1.0+b1*Di*tau)) * np.exp(-1/b2*np.log(1.0+b2*Di*(t-tau)/(1.0+b1*Di*tau)))
+        return Kprod_i * (1.0 / ((1.0 + b1 * Di * tau)**(1.0 / b1))) * (1.0 / (((1.0 + b2 * Di * (t - tau)) / (1.0 + b1 * Di * tau))**(1.0 / b2)))
 
 def calc_arps(df, Kprod):
+    df_with_Kprod = df[df[Kprod] > 0]  # только строки, где Кпрод больше 0
     df_r2 = pd.DataFrame(columns=['№ скважины', 'Тип Арпса', "R2"])
-    list_index = df.index
-    well_number = df['№ скважины'].iloc[0]
-    Kprod_max = get_max_Kprod(df, Kprod, 'Дата')
-    Kprod_init = df[Kprod].iloc[0]
+    list_index = df_with_Kprod.index
+    well_number = df_with_Kprod['№ скважины'].iloc[0]
+    Kprod_max = get_max_Kprod(df_with_Kprod, Kprod, 'Дата')
+    Kprod_init = df_with_Kprod[Kprod].iloc[0]
+    sigma = np.ones(df_with_Kprod.shape[0])
+    # sigma.fill(0.5)
+    sigma[0] = 0.1 # = sigma[-3:]
     FP = FunctionFluidProduction()
 
     # types_arps = {FP.exponential: ([Kprod_max, 0], 0, [Kprod_max, 1]),
@@ -86,16 +91,17 @@ def calc_arps(df, Kprod):
         print(arps)
         # typ = [FP.exponential, FP.hyperbolic, FP.harmonic, FP.power, FP.double]
 
-        popt_exp, pcov_exp = curve_fit(arps, df['Накопленное время работы, дни'], df[Kprod],
-                                       p0=types_arps[arps][0], bounds=(types_arps[arps][1], types_arps[arps][2]))
+        popt_exp, pcov_exp = curve_fit(arps, df_with_Kprod['Накопленное время работы, дни'], df_with_Kprod[Kprod],
+                                       p0=types_arps[arps][0], bounds=(types_arps[arps][1], types_arps[arps][2]), sigma = sigma)
         print(popt_exp)
-        K_prod_arps = arps(df['Накопленное время работы, дни'], *popt_exp)
-        decline_rate_Kprod = K_prod_arps / popt_exp[0]
+        K_prod_arps = arps(df_with_Kprod['Накопленное время работы, дни'], *popt_exp)
+        K_prod_arps_with_null = arps(df['Накопленное время работы, дни'], *popt_exp)
+        decline_rate_Kprod = K_prod_arps_with_null / popt_exp[0]
 
         # df[(arps.__name__)] = K_prod_arps
         df[(arps.__name__)] = decline_rate_Kprod
 
-        r_squared = r2_score(df[Kprod], K_prod_arps)
+        r_squared = r2_score(df_with_Kprod[Kprod], K_prod_arps)
         dict_R2 = {'№ скважины': well_number, 'Тип Арпса': (arps.__name__), 'R2': r_squared}
         df_r2 = df_r2._append(dict_R2, ignore_index=True)
     # decline_rate_Kprod_minimize, dict_r2 = Arps_minimize(df, Kprod)

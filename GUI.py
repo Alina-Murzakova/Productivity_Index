@@ -17,9 +17,7 @@ import subprocess
 
 from main import PI
 
-
 times = 0
-
 
 def load_file(button, entry):
     # global data_file
