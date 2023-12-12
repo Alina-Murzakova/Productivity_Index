@@ -64,7 +64,7 @@ class FunctionFluidProduction:
         return np.exp(-1/b1*np.log(1.0+b1*Di*tau)) * np.exp(-1/b2*np.log(1.0+b2*Di*(t-tau)/(1.0+b1*Di*tau)))
         # return (1.0 / ((1.0 + b1 * Di * tau)**(1.0 / b1))) * (1.0 / (((1.0 + b2 * Di * (t - tau)) / (1.0 + b1 * Di * tau))**(1.0 / b2)))
 
-def calc_arps(df, Kprod):
+def calc_arps(df, Kprod, Flag_smooth):
     df_with_Kprod = df[df[Kprod] > 0]  # только строки, где Кпрод больше 0
     df_r2 = pd.DataFrame(columns=['№ скважины', 'Тип Арпса', "R2"])
     list_index = df_with_Kprod.index
@@ -72,6 +72,17 @@ def calc_arps(df, Kprod):
     Kprod_max = get_max_Kprod(df_with_Kprod, Kprod, 'Дата')
     Kprod_init = df_with_Kprod[Kprod].iloc[0]
     decline_rate_Kprod = df_with_Kprod[Kprod] / Kprod_init
+
+    if Flag_smooth == 1:
+        decline_rate_Kprod = decline_rate_Kprod.rolling(window=5, center=True).mean()
+        df['smoothed'] = decline_rate_Kprod
+        decline_rate_Kprod = decline_rate_Kprod[decline_rate_Kprod > 0]
+
+        df_with_Kprod = df_with_Kprod.merge(decline_rate_Kprod.rename('Temp_smoothed'), left_index=True, right_index=True)
+        # df = df.merge(df_with_Kprod[['Дата', 'Temp_smoothed']], how='left', on='Дата')
+        # df = df.merge(decline_rate_Kprod.rename('smoothed'), how='left', left_index=True, right_index=True)
+
+
     sigma = np.ones(df_with_Kprod.shape[0])
     # sigma.fill(0.5)
     sigma[0] = 0.1 # = sigma[-3:]

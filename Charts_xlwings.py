@@ -16,7 +16,7 @@ import win32com.client
 
 # редактируемый график Кпрод
 
-def charts(data_prod, xw, sht, index_first_not_null, index_last, count_arps, Kprod):
+def charts(data_prod, xw, sht, index_first_not_null, index_last, count_arps, Kprod, Flag_smooth):
     chart = xw.Chart()
     # chart = sht.charts.add(left=sht.range('A1').expand().width + 10, top=50, width=1000, height=450)
     chart.top = 30  # положение сверху
@@ -121,6 +121,13 @@ def charts(data_prod, xw, sht, index_first_not_null, index_last, count_arps, Kpr
     sht.charts[1].api[1].SeriesCollection(series_number_Arps + 1).XValues = sht.range('N' + str(index_first_not_null + 2) + ':N' + str(index_last + 1)).api
     chart_arps.api[1].SeriesCollection(series_number_Arps + 1).Name = Kprod
     sht.charts[1].api[1].SeriesCollection(series_number_Arps + 1).Format.Line.ForeColor.RGB = rgb_to_int((0, 64, 119))
+
+    if Flag_smooth == 1:
+        chart_arps.api[1].SeriesCollection().NewSeries()
+        sht.charts[1].api[1].SeriesCollection(series_number_Arps + 2).Values = sht.range('W' + str(index_first_not_null + 2) + ':W' + str(index_last + 1)).api
+        sht.charts[1].api[1].SeriesCollection(series_number_Arps + 2).XValues = sht.range('N' + str(index_first_not_null + 2) + ':N' + str(index_last + 1)).api
+        chart_arps.api[1].SeriesCollection(series_number_Arps + 2).Name = "decline_smoothed"
+        sht.charts[1].api[1].SeriesCollection(series_number_Arps + 2).Format.Line.ForeColor.RGB = rgb_to_int((205, 34, 44))
 
     chart_arps.chart_type = 'xy_scatter_lines_no_markers'  # тип диаграммы
     chart_arps.height = 250  # высота диаграммы в points

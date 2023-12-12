@@ -47,6 +47,11 @@ def get_file(event):
     data_init = entry_1.get()
     data_gtm = entry_2.get()
 
+    if r_var.get() == 1:
+        Flag_smooth = 1
+    else:
+        Flag_smooth = 0
+
     try:
         df_initial = pd.read_excel(os.path.join(os.path.dirname(__file__), data_init))  # Открытие экселя
         df_gtm = pd.read_excel(os.path.join(os.path.dirname(__file__), data_gtm), header=1)  # Открытие экселя с ГТМ
@@ -60,7 +65,8 @@ def get_file(event):
         # win.after(1000, get_file)
 
         # update_timer()
-        times = PI(df_initial, df_gtm, data_init)
+
+        times = PI(df_initial, df_gtm, data_init, Flag_smooth)
         print(times)
 
         label_3 = tk.Label(master=frame_2, text=f"Время расчёта: {int(times // 60)} мин. {int(times % 60)} сек.",
@@ -143,28 +149,6 @@ def open_report():
                            justify=tk.CENTER)
         label_1.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-def counter_label(label):
-    a = 0
-    label.config(text=str(a))
-    def count():
-        nonlocal a
-        label.config(text=str(a))
-        a += 1
-        label.after(1000, count)
-    return count
-
-def start_stop(root, counter):
-    first = True
-    def call():
-        nonlocal first
-        if first:
-            counter()
-            first = False
-        else:
-            root.destroy()
-    return call
-
-
 win = tk.Tk()  # главное окно, еще называют root
 
 win.title('Productivity index')
@@ -179,7 +163,7 @@ config_path = os.path.join(application_path, 'logo.png')
 logo = tk.PhotoImage(file=config_path)
 win.iconphoto(False, logo)
 win.config(bg='#DADADA')  # фон, можно вместо названия цвета указать хеш; bg(background) – «фон». fg(foreground) ) - «передний план»
-win.geometry("400x450+100+100")  # размер окна и расположение (его можно не указывать)
+win.geometry("400x500+100+100")  # размер окна и расположение (его можно не указывать)
 # win.minsize(400, 300) # минимальный возможный размер, если True в resizable
 # win.minsize(800, 700) # максимальный возможный размер, если True в resizable
 win.resizable(width=False, height=False)  # Нельзя изменять размер окна
@@ -254,33 +238,23 @@ btn_1.bind('<ButtonRelease-1>', lambda event, button=btn_1, entry=entry_1: load_
 btn_2.bind('<ButtonRelease-1>', lambda event, button=btn_2, entry=entry_2: load_file(button, entry))
 btn_3.bind('<ButtonRelease-1>', get_file)
 
-# label = tk.Label(win, fg="green")
-# label.pack()
-# counter = counter_label(label)
+r_var = tk.BooleanVar()
+r_var.set(0)
+r1 = tk.Radiobutton(master=win, text='Не сглаживать', variable=r_var, value=0, font="Arial 10", bg='#DADADA')
+r2 = tk.Radiobutton(master=win, text='Сглаживать', variable=r_var, value=1, font="Arial 10", bg='#DADADA')
 
-def threaded_run(event):
-    t = Thread(target=start_stop(win, counter))
-    t.daemon = True
-    t.start()
-
-
-def run_task(event):
-    p = mp.Process(target=start_stop(win, counter))
-    p.start()
-
-
-# button = tk.Button(root, textvariable=btn_text, width=25, command=start_stop(root, btn_text, counter))
-
-frame_1.place(relx=0.5, rely=0.31, anchor=tk.CENTER)
-frame_2.place(relx=0.5, rely=0.83, anchor=tk.CENTER)
+frame_1.place(relx=0.5, rely=0.28, anchor=tk.CENTER)
+frame_2.place(relx=0.5, rely=0.84, anchor=tk.CENTER)
 label_1.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 label_2.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
 btn_1.place(relx=0.5, rely=0.26, anchor=tk.CENTER)
 btn_2.place(relx=0.5, rely=0.66, anchor=tk.CENTER)
-btn_3.place(relx=0.5, rely=0.63, anchor=tk.CENTER)
+btn_3.place(relx=0.5, rely=0.67, anchor=tk.CENTER)
 btn_4.place(relx=0.5, rely=0.55, anchor=tk.CENTER)
 entry_1.place(relx=0.5, rely=0.44, anchor=tk.CENTER)
 entry_2.place(relx=0.5, rely=0.84, anchor=tk.CENTER)
+r1.place(relx=0.35, rely=0.51)
+r2.place(relx=0.35, rely=0.56)
 
 
 win.mainloop()  # запускает цикл обработки событий; пока мы не вызовем эту функцию, окно не откроется
