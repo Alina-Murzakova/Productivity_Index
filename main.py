@@ -17,8 +17,8 @@ import win32com.client
 from Charts_xlwings import charts
 from Plots_matplotlib import plots
 
-data_file = "Вынгаяхинское Ю1 3035.xlsx" # Файл для расчета
-data_file_gtm = "Вынгаяхинское Ю1 ГТМ.xls" # Файл новая стратегия
+data_file = "Крайнее.xlsx" # Файл для расчета
+data_file_gtm = "Крайнее_ГТМ.xls" # Файл новая стратегия
 
 max_distance = 1000 # Максимальное расстояние между скважинами, м
 min_period = 12  # Минимальный период совместный работы
@@ -48,8 +48,9 @@ y2 = "Координата забоя Y"
 Kprod_TP = 'Кпрод ТР расчет, м3/сут/атм'
 Kprod_new = 'Кпрод (Рпл = Рзаб ППД), м3/сут/атм'
 check_depletion_drive = 0
+Flag_smooth = 0
 
-def PI(df_initial, df_gtm, data_file, Flag_smooth):
+def PI(df_initial, df_gtm, data_file, max_distance, Flag_smooth):
     print(Flag_smooth)
     # df_initial = pd.read_excel(os.path.join(os.path.dirname(__file__), data_file))  # Открытие экселя
     # df_gtm = pd.read_excel(os.path.join(os.path.dirname(__file__), data_file_gtm), header=1)  # Открытие экселя с ГТМ
@@ -255,9 +256,13 @@ def PI(df_initial, df_gtm, data_file, Flag_smooth):
 
             # расчет средневзвешенного значения Рзаб ППД из списка
             df_injection_data["Pзаб*Приемистость"] = df_injection_data[P_well] * df_injection_data[Winj_rate]
-            inj_parameters_sum = df_injection_data.groupby(date).aggregate({well_number: 'count', Winj_rate: 'sum', 'Pзаб*Приемистость': 'sum'}) # Суммирование всех произведений на определенную дату
+            df_injection_data[well_number] = df_injection_data[well_number].astype(str) # измененение типа данных столбца с номером скважины
+            df_injection_data['ППД в окружении'] = df_injection_data[well_number]
+
+            inj_parameters_sum = df_injection_data.groupby(date).aggregate({well_number: 'count', Winj_rate: 'sum', 'Pзаб*Приемистость': 'sum', 'ППД в окружении': ', '. join})  # Суммирование всех произведений на определенную дату
+            # inj_parameters_sum = df_injection_data.groupby(date).aggregate({well_number: 'count', Winj_rate: 'sum', 'Pзаб*Приемистость': 'sum'}) # Суммирование всех произведений на определенную дату
             inj_parameters_sum = inj_parameters_sum.rename(columns={well_number: 'Кол-во действ скважин ППД в окружении'}) # Переименование столбца
-            inj_parameters_sum['ППД в окружении'] = ", ".join(map(str, list_inj_wells))
+            # inj_parameters_sum['ППД в окружении'] = ", ".join(map(str, list_inj_wells))
             inj_parameters_sum['Средневзвешенное Рзаб ППД'] = inj_parameters_sum["Pзаб*Приемистость"] / inj_parameters_sum[Winj_rate]
 
             # удаление ненужных столбцов
