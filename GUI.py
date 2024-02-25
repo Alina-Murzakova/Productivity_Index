@@ -1,21 +1,16 @@
-# pyinstaller --onedir --noconsole --hidden-import="sklearn.utils._typedefs" --hidden-import="sklearn.utils._heap" --hidden-import="sklearn.utils._sorting" --hidden-import="sklearn.utils._vector_sentinel" main.py
-
 import tkinter as tk
 from tkinter import filedialog as fd
 import customtkinter as ctk
 # from customtkinter import *
-
+from tkinter.ttk import Progressbar
 import pandas as pd
 import os
 import sys
-import runpy
-import time
-# import threading
-from threading import Thread
-import multiprocessing as mp
 import subprocess
+from time import sleep
 
 from main import PI
+from function import errors
 
 times = 0
 
@@ -49,37 +44,15 @@ def get_file(event):
     max_distance = int(entry_3.get())
 
     if data_init == 'Выберите файл' or data_gtm == 'Выберите файл':
-        root = tk.Toplevel()
-        root.title('Error')
-        root.attributes('-toolwindow', True)
-        if getattr(sys, 'frozen', False):
-            # If the application is run as a bundle, the PyInstaller bootloader
-            # extends the sys module by a flag frozen=True and sets the app
-            # path into variable _MEIPASS'.
-            application_path = sys._MEIPASS
-        else:
-            application_path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(application_path, 'point.png')
-        logo = tk.PhotoImage(file=config_path)
-        root.iconphoto(False, logo)
-        root.config(
-            bg='light grey')  # фон, можно вместо названия цвета указать хеш; bg(background) – «фон». fg(foreground) ) - «передний план»
-        root.geometry("200x80+200+200")  # размер окна и расположение (его можно не указывать)
-        root.resizable(width=False, height=False)  # Нельзя изменять размер окна
-        label_1 = tk.Label(root, text="Исходные данные \n "
-                                      "не выбраны!",
-                           bg='light grey',
-                           fg='black',
-                           font=("Arial", 9, "bold"),
-                           # padx=20, # отступ по x
-                           # pady=30, # отступ по y
-                           # width=20, # ширина
-                           # height=10, # высота
-                           # anchor='n', # расположение текста в лейбле
-                           justify=tk.CENTER)
-        label_1.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        Flag = 1
+        errors(Flag)
 
     else:
+        pb['value'] = 0
+        win.update_idletasks()
+        label_5['text'] = round(pb['value']), '%'
+        win.update_idletasks()
+
         if r_var.get() == 1:
             Flag_smooth = 1 # сглаженная кривая
         else:
@@ -89,18 +62,7 @@ def get_file(event):
             df_initial = pd.read_excel(os.path.join(os.path.dirname(__file__), data_init))  # Открытие экселя
             df_gtm = pd.read_excel(os.path.join(os.path.dirname(__file__), data_gtm), header=1)  # Открытие экселя с ГТМ
 
-            # btn_3.configure(text="Стоп", state=tk.NORMAL)
-            # # btn_3.set('Стоп')
-            # win.update()
-            # # Создание кнопки "Остановить"
-            # btn_3.bind('<ButtonRelease-1>', stop_script)
-            # win.after(5, lambda: btn_3.configure(state=tk.NORMAL))
-
-            # win.after(1000, get_file)
-
-            # update_timer()
-
-            times = PI(df_initial, df_gtm, data_init, max_distance, Flag_smooth)
+            times = PI(df_initial, df_gtm, data_init, max_distance, Flag_smooth, win, pb, label_5)
             print(times)
 
             label_3 = tk.Label(master=frame_2, text=f"Время расчёта: {int(times // 60)} мин. {int(times % 60)} сек.",
@@ -115,73 +77,22 @@ def get_file(event):
                                justify=tk.RIGHT)
             label_3.place(relx=0.5, rely=0.85, anchor=tk.CENTER)
 
+            return times
+
         except:
-            root = tk.Toplevel()
-            root.title('Error')
-            root.attributes('-toolwindow', True)
-            if getattr(sys, 'frozen', False):
-                # If the application is run as a bundle, the PyInstaller bootloader
-                # extends the sys module by a flag frozen=True and sets the app
-                # path into variable _MEIPASS'.
-                application_path = sys._MEIPASS
-            else:
-                application_path = os.path.dirname(os.path.abspath(__file__))
-            config_path = os.path.join(application_path, 'point.png')
-            logo = tk.PhotoImage(file=config_path)
-            root.iconphoto(False, logo)
-            root.config(
-                bg='light grey')  # фон, можно вместо названия цвета указать хеш; bg(background) – «фон». fg(foreground) ) - «передний план»
-            root.geometry("200x80+200+200")  # размер окна и расположение (его можно не указывать)
-            root.resizable(width=False, height=False)  # Нельзя изменять размер окна
-            label_1 = tk.Label(root, text="Ошибка в расчете!",
-                               bg='light grey',
-                               fg='black',
-                               font=("Arial", 9, "bold"),
-                               # padx=20, # отступ по x
-                               # pady=30, # отступ по y
-                               # width=20, # ширина
-                               # height=10, # высота
-                               # anchor='n', # расположение текста в лейбле
-                               justify=tk.CENTER)
-            label_1.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-    return times
-
-    # runpy.run_path(path_name='GUI.py')
-    # exit()
+            Flag = 2
+            errors(Flag)
 
 def open_report():
-    if not entry_1.get() == 'Выберите файл':
+    if entry_1.get() == 'Выберите файл':
+        Flag = 1
+        errors(Flag)
+    elif pb['value'] > 99.9:
         subprocess.Popen(str(entry_1.get()).replace(".xlsx", "") + "_out.xlsx", shell=True)
         # os.system(str(entry_1.get()).replace(".xlsx", "") + "_out.xlsx")
     else:
-        root = tk.Toplevel()
-        root.title('Error')
-        root.attributes('-toolwindow', True)
-        if getattr(sys, 'frozen', False):
-            # If the application is run as a bundle, the PyInstaller bootloader
-            # extends the sys module by a flag frozen=True and sets the app
-            # path into variable _MEIPASS'.
-            application_path = sys._MEIPASS
-        else:
-            application_path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(application_path, 'point.png')
-        logo = tk.PhotoImage(file=config_path)
-        root.iconphoto(False, logo)
-        root.config(bg='light grey')  # фон, можно вместо названия цвета указать хеш; bg(background) – «фон». fg(foreground) ) - «передний план»
-        root.geometry("200x80+200+200")  # размер окна и расположение (его можно не указывать)
-        root.resizable(width=False, height=False)  # Нельзя изменять размер окна
-        label_1 = tk.Label(root, text="Расчет не выполнен!",
-                           bg='light grey',
-                           fg='black',
-                           font=("Arial", 9, "bold"),
-                           # padx=20, # отступ по x
-                           # pady=30, # отступ по y
-                           # width=20, # ширина
-                           # height=10, # высота
-                           # anchor='n', # расположение текста в лейбле
-                           justify=tk.CENTER)
-        label_1.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        Flag = 3
+        errors(Flag)
 
 win = tk.Tk()  # главное окно, еще называют root
 
@@ -252,6 +163,12 @@ label_4 = tk.Label(win, text="Радиус поиска ППД:",
                    # anchor='n', # расположение текста в лейбле
                    justify=tk.CENTER)
 
+label_5 = tk.Label(master=win, text="",
+                   bg='#DADADA',
+                   fg='black',
+                   font="Arial 9",
+                   justify=tk.CENTER)
+
 
 btn_1 = tk.Button(master=frame_1, text='Эксплуатационные показатели', width=30, bg='#909090', fg='white')
 
@@ -276,11 +193,7 @@ entry_2.insert(0, 'Выберите файл')
 entry_3 = tk.Entry(win, width=10, justify='center')
 entry_3.insert(0, '1000')
 
-
-# label_1.pack()
-# btn_1.pack()  # виджет автоматически ставится по центру окна
-# btn_2.grid(row=0, column=0) # расположение виджетов по колонкам
-# entry_1.pack()
+pb = Progressbar(win, orient="horizontal", mode="determinate", length=150, maximum=100, value=0)
 
 btn_1.bind('<ButtonRelease-1>', lambda event, button=btn_1, entry=entry_1: load_file(button, entry))
 btn_2.bind('<ButtonRelease-1>', lambda event, button=btn_2, entry=entry_2: load_file(button, entry))
@@ -291,20 +204,22 @@ r_var.set(0)
 r1 = tk.Radiobutton(master=win, text='Не сглаживать', variable=r_var, value=0, font="Arial 10", bg='#DADADA')
 r2 = tk.Radiobutton(master=win, text='Сглаживать', variable=r_var, value=1, font="Arial 10", bg='#DADADA')
 
-frame_1.place(relx=0.5, rely=0.25, anchor=tk.CENTER)
-frame_2.place(relx=0.5, rely=0.86, anchor=tk.CENTER)
+frame_1.place(relx=0.5, rely=0.23, anchor=tk.CENTER)
+frame_2.place(relx=0.5, rely=0.88, anchor=tk.CENTER)
 label_1.place(relx=0.5, rely=0.1, anchor=tk.CENTER)
 label_2.place(relx=0.5, rely=0.2, anchor=tk.CENTER)
-label_4.place(relx=0.2, rely=0.48)
+label_4.place(relx=0.2, rely=0.46)
+label_5.place(relx=0.7, rely=0.71)
 btn_1.place(relx=0.5, rely=0.26, anchor=tk.CENTER)
 btn_2.place(relx=0.5, rely=0.66, anchor=tk.CENTER)
-btn_3.place(relx=0.5, rely=0.69, anchor=tk.CENTER)
-btn_4.place(relx=0.5, rely=0.56, anchor=tk.CENTER)
+btn_3.place(relx=0.5, rely=0.66, anchor=tk.CENTER)
+btn_4.place(relx=0.5, rely=0.54, anchor=tk.CENTER)
 entry_1.place(relx=0.5, rely=0.44, anchor=tk.CENTER)
 entry_2.place(relx=0.5, rely=0.84, anchor=tk.CENTER)
-entry_3.place(relx=0.7, rely=0.5, anchor=tk.CENTER)
-r1.place(relx=0.2, rely=0.53)
-r2.place(relx=0.2, rely=0.58)
+entry_3.place(relx=0.7, rely=0.48, anchor=tk.CENTER)
+r1.place(relx=0.2, rely=0.51)
+r2.place(relx=0.2, rely=0.56)
+pb.place(relx=0.5, rely=0.73, anchor=tk.CENTER)
 
 
 win.mainloop()  # запускает цикл обработки событий; пока мы не вызовем эту функцию, окно не откроется

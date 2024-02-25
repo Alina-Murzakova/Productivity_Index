@@ -1,5 +1,8 @@
 __pycache__/
 Jupyter/
 help_for_me/
+build/
+dist/
 *.xls
 *.xlsx
+*.spec

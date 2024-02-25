@@ -7,12 +7,9 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from gtm import gtm_date_convert, load_data_evt
 from Arps import get_max_Kprod, calc_arps
-from openpyxl.chart import LineChart, Reference
-from openpyxl import Workbook
 from scipy.optimize import curve_fit
 from xlwings.utils import rgb_to_int
 import win32com.client
-
 
 # редактируемый график Кпрод
 

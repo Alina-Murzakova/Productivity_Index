@@ -1,5 +1,4 @@
 import pandas as pd
-import time, os
 import numpy as np
 import xlwings as xw
 import matplotlib.pyplot as plt
@@ -104,12 +103,12 @@ def calc_arps(df, Kprod, Flag_smooth):
                   FP.double: ([0.0001, 0.0001, 0.0001, 10], 0, [10, 1, 10, 500])}
 
     for arps in types_arps:
-        print(arps)
+        # print(arps)
         # typ = [FP.exponential, FP.hyperbolic, FP.harmonic, FP.power, FP.double]
 
         popt_exp, pcov_exp = curve_fit(arps, df_with_Kprod['Накопленное время работы, дни'], decline_rate_Kprod,
                                        p0=types_arps[arps][0], bounds=(types_arps[arps][1], types_arps[arps][2]), sigma = sigma)
-        print(popt_exp)
+        # print(popt_exp)
         decline_rate_Kprod_Arps = arps(df_with_Kprod['Накопленное время работы, дни'], *popt_exp)
         decline_rate_Kprod_Arps_with_null = arps(df['Накопленное время работы, дни'], *popt_exp)
         # decline_rate_Kprod = K_prod_arps_with_null / popt_exp[0]

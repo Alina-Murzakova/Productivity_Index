@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 import datetime as dt
 from gtm import gtm_date_convert, load_data_evt
 from Arps import get_max_Kprod, calc_arps
-from openpyxl.chart import LineChart, Reference
-from openpyxl import Workbook
 from scipy.optimize import curve_fit
 from xlwings.utils import rgb_to_int
 import win32api
@@ -16,6 +14,7 @@ import win32com.client
 # print(win32api.FormatMessage(-2147352567))
 from Charts_xlwings import charts
 from Plots_matplotlib import plots
+from time import sleep
 
 data_file = "Крайнее.xlsx" # Файл для расчета
 data_file_gtm = "Крайнее_ГТМ.xls" # Файл новая стратегия
@@ -50,7 +49,7 @@ Kprod_new = 'Кпрод (Рпл = Рзаб ППД), м3/сут/атм'
 check_depletion_drive = 0
 Flag_smooth = 0
 
-def PI(df_initial, df_gtm, data_file, max_distance, Flag_smooth):
+def PI(df_initial, df_gtm, data_file, max_distance, Flag_smooth, win, pb, label_5):
     print(Flag_smooth)
     # df_initial = pd.read_excel(os.path.join(os.path.dirname(__file__), data_file))  # Открытие экселя
     # df_gtm = pd.read_excel(os.path.join(os.path.dirname(__file__), data_file_gtm), header=1)  # Открытие экселя с ГТМ
@@ -87,6 +86,12 @@ def PI(df_initial, df_gtm, data_file, max_distance, Flag_smooth):
         list_inj_wells = [] # список нагнетательных скважин ближайшего окружения
         list_distance = [] # список расстояний до нагнетательных скважин ближайшего окружения
         print(prod_well)
+
+        # для progressbara
+        pb['value'] += 100 / len(wells_prod)
+        label_5['text'] = round(pb['value']), '%'
+        win.update_idletasks()
+        sleep(0.05)
 
         # данные добывающей скважины
         data_prod = df_initial.loc[(df_initial[well_number] == prod_well) & (df_initial[work_marker] == prod)].copy()
@@ -371,8 +376,10 @@ def PI(df_initial, df_gtm, data_file, max_distance, Flag_smooth):
     app1.quit()
     del app1
 
-    end_time = time.time()
+    label_5['text'] = '' # при повторном нажатии на "расчет" почему-то процент расчета накладывается на 100%
+    win.update_idletasks()
 
+    end_time = time.time()
     elapsed_time = end_time - start_time
     print('Elapsed time: ', elapsed_time)
     return elapsed_time
