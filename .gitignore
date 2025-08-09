@@ -10,4 +10,6 @@ dist/
 /venv/
 Методика/
 data/
+!templates/ГТМ.xls
+!templates/Эксплуатационные показатели.xlsx
 
